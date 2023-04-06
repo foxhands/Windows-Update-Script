@@ -19,7 +19,6 @@ Some can be specified when running the script, while others can be changed withi
 # Run the script with internet connection check
 .\script-name.ps1 -CheckInternetConnection -LogToFile
 
-
 ```
 
 # License

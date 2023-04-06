@@ -24,4 +24,4 @@
 .\script-name.ps1 -AdminRights
 ```
 # Лицензия
-Этот проект находится под лицензией MIT - подробности смотрите в файле [LICENSE](https://gihub.com/foxhands/Windows-Update-Script/blob/main/LICENSE).
+Этот проект находится под лицензией MIT - подробности смотрите в файле [LICENSE](https://github.com/foxhands/Windows-Update-Script/blob/main/LICENSE).

@@ -1,121 +1,116 @@
     [CmdletBinding()]
     Param(
         [switch]$CheckInternetConnection,
-        [switch]$CheckAdminRights,
         [switch]$LogToFile
     )
 
+    $FilePath = 'D:\System\Script\UpdateScript.log'
+
     function Log-Message {
-        Param(
-            [Parameter(Mandatory=$true)]
-            [string]$Message
+        param (
+            [Parameter(Mandatory = $true)]
+            [string]$Message,
+            [Parameter(Mandatory = $true)]
+            [string]$FilePath,
+            [string]$DateTimeFormat = "yyyy-MM-dd HH:mm:ss",
+            [switch]$NoClobber
         )
-        $currentTime = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $LogMessage = "[$currentTime] $Message"
-        Add-Content -Path $LogPath -Value $LogMessage -Encoding UTF8
-    }
 
-    function Check-AdminRights {
-        $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
-        $isAdmin = $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        $currentTime = Get-Date -Format $DateTimeFormat
 
-        if (!$isAdmin) {
-            Log-Message "Требуются права администратора для выполнения скрипта."
-            Write-Error "Требуются права администратора для выполнения скрипта."
-            return $false
-        }
-
-        return $true
-    }
-
-    function Check-InternetConnection {
-        $PingResult = Test-NetConnection -ComputerName 'www.google.com' -InformationLevel Quiet
-        if ($PingResult -ne 'True') {
-            Write-Error "Отсутствует подключение к интернету. Проверьте соединение и повторите попытку."
-            return $false
-        }
-
-        return $true
-    }
-
-    # Функция, которая проверяет, запущен ли сценарий с повышенными правами
-    function Test-Admin {
-        $currentUser = New-Object Security.Principal.WindowsPrincipal $([Security.Principal.WindowsIdentity]::GetCurrent())
-        $currentUser.IsInRole([Security.Principal.WindowsBuiltinRole]::Administrator)
-    }
-
-    # Функция, которая устанавливает обновления
-    function Install-Updates {
-        if (Test-Admin) {
-            Write-Host "Запущено с правами администратора. Проверяем наличие обновлений..."
-            $session = New-Object -ComObject Microsoft.Update.Session
-            $searcher = $session.CreateUpdateSearcher()
-            $updates = $searcher.Search("IsInstalled=0")
-            if ($updates.Updates.Count -eq 0) {
-                Write-Host "Нет доступных обновлений для установки."
+        if (Test-Path $FilePath -PathType Leaf) {
+            if ($NoClobber) {
+                Write-Error "File already exists at $FilePath. Specify a new file path or use -NoClobber switch."
                 return
             }
-            Write-Host "Найдено $($updates.Updates.Count) обновлений для установки."
-            Write-Host "Начинаем загрузку обновлений..."
-            $updatesToInstall = New-Object -ComObject Microsoft.Update.UpdateColl
-            foreach ($update in $updates.Updates) {
-                $updatesToInstall.Add($update)
-            }
-            $downloader = $session.CreateUpdateDownloader()
-            $downloader.Updates = $updatesToInstall
-            $downloader.Download()
-            Write-Host "Обновления загружены. Начинаем установку..."
-            $installer = $session.CreateUpdateInstaller()
-            $installer.Updates = $updatesToInstall
-            $installationResult = $installer.Install()
-            if ($installationResult.ResultCode -eq "2") {
-                Write-Host "Установка обновлений потребует перезагрузки. Перезагружаем компьютер..."
-                Restart-Computer -Force
-            } else {
-                Write-Host "Установка обновлений завершена."
-            }
+        }
+
+        try {
+            # Open file handle in append mode
+            $fileHandle = [System.IO.File]::Open($FilePath, [System.IO.FileMode]::Append, [System.IO.FileAccess]::Write, [System.IO.FileShare]::Read)
+            $streamWriter = [System.IO.StreamWriter]::new($fileHandle, [System.Text.Encoding]::UTF8)
+
+            # Write message to file
+            $streamWriter.WriteLine("[$currentTime] $Message")
+            $streamWriter.Flush()
+
+            # Close file handle and stream writer
+            $streamWriter.Close()
+            $fileHandle.Close()
+        } catch {
+            Write-Error "Failed to write to file $FilePath. $_"
+        }
+
+        # Add message to message buffer
+        $global:MessageBuffer += "[$currentTime] $Message`r`n"
+    }
+
+
+    function Install-Updates {
+        Write-Host "Running with administrative privileges. Checking for updates..."
+        Log-Message -Message "Running with administrative privileges. Checking for updates..." -FilePath $FilePath
+
+        $session = New-Object -ComObject Microsoft.Update.Session
+        $searcher = $session.CreateUpdateSearcher()
+        $updates = $searcher.Search("IsInstalled=0")
+        if ($updates.Updates.Count -eq 0) {
+            Write-Host "No updates available to install."
+            Log-Message -Message "No updates available to install." -FilePath $FilePath
+            return
+        }
+        Write-Host "Found $($updates.Updates.Count) updates to install. Downloading and installing updates..."
+        Log-Message -Message "Found $($updates.Updates.Count) updates to install. Downloading and installing updates..." -FilePath $FilePath
+
+        $installer = $session.CreateUpdateInstaller()
+        $installer.Updates = $updates.Updates
+        $installationResult = $installer.DownloadAndInstall()
+        if ($installationResult.ResultCode -eq "2") {
+            Write-Host "Updates require a restart. Restarting computer..."
+            Log-Message -Message "Updates require a restart. Restarting computer..." -FilePath $FilePath
+            Restart-Computer -Force
         } else {
-            Write-Host "Для установки обновлений требуются права администратора."
+            Write-Host "Updates installed successfully."
+            Log-Message -Message "Updates installed successfully." -FilePath $FilePath
         }
     }
 
 
-
-    $LogPath = 'D:\System\Script\UpdateScript.log'
-
-    # Удаление старого лога, если он существует
-    if (Test-Path $LogPath) {
-        Remove-Item $LogPath -Force
+    function Test-Administrator {
+        $currentUser = New-Object Security.Principal.WindowsPrincipal([Security.Principal.WindowsIdentity]::GetCurrent())
+        $isAdmin = $currentUser.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+        if (!$isAdmin) {
+            Write-Error "Administrator privileges required to run the script."
+            return $false
+        }
+        return $true
     }
 
-    # Логирование
+    $MessageBuffer = ""
+
     if ($LogToFile) {
-        Log-Message "Лог-файл создан: $LogPath"
+        $LogPath = 'D:\System\Script\UpdateScript.log'
     }
 
-    # Проверка прав доступа
-    if ($CheckAdminRights) {
-        if (!(Check-AdminRights)) {
-            return
-        }
+    if (!(Test-Administrator)) {
+        Write-Error "Administrator privileges required to run the script."
+        return
     }
 
-    # Проверка соединения с интернетом
     if ($CheckInternetConnection) {
-        if (!(Check-InternetConnection)) {
+        $PingResult = Test-NetConnection -ComputerName 'www.google.com' -InformationLevel Quiet
+        if ($PingResult -ne 'True') {
+            Write-Error "No internet connection. Please check the connection and try again."
             return
         }
     }
-
-    # Установка обновлений
     Install-Updates
 
-    #Завершение работы скрипта
-    Log-Message "Скрипт успешно выполнен."
-    Write-Host "Скрипт успешно выполнен."
+    if ($LogToFile) {
+        try {
+            Log-Message -Message $MessageBuffer -FilePath $LogPath -NoClobber
+        } catch {
+            Write-Error "Unable to write log file to $LogPath"
+        }
+    }
 
-    #Приостанавливает выполнение скрипта на 2 секунды
-    Start-Sleep -Seconds 2
-
-    # Закрытие окна PowerShell
-    Stop-Process -Id $PID
+    Write-Host "Script completed successfully."

@@ -1,27 +1,26 @@
 # Windows-Update-Script
-Этот PowerShell скрипт позволяет автоматизировать процесс обновления системы Windows.
-Он содержит модульный код и опции проверки подключения к интернету, прав администратора и логирования в файл.
-Скрипт быстрый и оптимизирован, а также содержит функцию очистки лог-файла после выполнения.
+This PowerShell script automates the process of updating Windows system.
+It contains modular code and options for checking internet connection, admin rights, and logging to file.
+The script is fast and optimized and also includes a function to clear the log file after execution.
 
-# Установка
-- Склонируйте репозиторий с помощью команды: ``` git clone https://github.com/foxhands/Windows-Update-Script.git ```
-- Перейдите в каталог со скриптом.
-- Откройте PowerShell и запустите скрипт командой: ```.\Windows-Update-Script.ps1```
+# Installation
+- Clone the repository using the command: `git clone https://github.com/foxhands/Windows-Update-Script.git`
+- Navigate to the directory containing the script.
+- Open PowerShell and run the script using the command: `.\Windows-Update-Script.ps1`
 
-# Использование
-Скрипт может быть запущен с различными опциями.
-Некоторые из них могут быть заданы при запуске скрипта, а другие могут быть изменены внутри скрипта:
-* -CheckInternetConnection - проверка подключения к интернету.
-* -LogToFile - логирование выполнения скрипта в файл.
-* -AdminRights - проверка наличия прав администратора.
+# Usage
+The script can be run with various options.
+Some can be specified when running the script, while others can be changed within the script:
+* -CheckInternetConnection - check internet connection.
+* -LogToFile - log script execution to file.
 
-# Примеры
+# Examples
 ```
-# Запуск скрипта с проверкой подключения к интернету и логированием в файл
+# Run the script with internet connection check
 .\script-name.ps1 -CheckInternetConnection -LogToFile
 
-# Запуск скрипта с правами администратора и очисткой лог-файла после выполнения
-.\script-name.ps1 -AdminRights
+
 ```
-# Лицензия
-Этот проект находится под лицензией MIT - подробности смотрите в файле [LICENSE](https://github.com/foxhands/Windows-Update-Script/blob/main/LICENSE).
+
+# License
+This project is licensed under the MIT License - see the [LICENSE](https://github.com/foxhands/Windows-Update-Script/blob/main/LICENSE) file for details.
